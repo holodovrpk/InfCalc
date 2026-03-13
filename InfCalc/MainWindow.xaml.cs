@@ -168,8 +168,27 @@ namespace InfCalc
 
         private void Table5Button_Click(object sender, RoutedEventArgs e)
         {
-            if (!EnsureDataLoaded()) return;
-            MessageBox.Show("Таблица 5 будет реализована следующим шагом.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!EnsureDataLoaded())
+                return;
+
+            try
+            {
+                var rows = BuildTable5Rows();
+
+                var window = new Table5Window(rows)
+                {
+                    Owner = this
+                };
+
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при формировании Таблицы 5:\n{ex.Message}",
+                                "Ошибка",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
         }
 
 
@@ -316,6 +335,87 @@ namespace InfCalc
                 TotalObjects = rows.Sum(r => r.TotalObjects),
                 HasAlgorithms = rows.Sum(r => r.HasAlgorithms),
                 UpdatedAlgorithms = rows.Sum(r => r.UpdatedAlgorithms)
+            });
+
+            return rows;
+        }
+
+        private static double ParseDouble(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+                return 0;
+
+            value = value.Trim()
+                         .Replace("%", "")
+                         .Replace(" ", "")
+                         .Replace("\u00A0", "")
+                         .Replace(",", ".");
+
+            if (double.TryParse(value, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double result))
+                return result;
+
+            return 0;
+        }
+
+        private static double AverageOrZero(IEnumerable<double> values)
+        {
+            var list = values.Where(v => v > 0).ToList();
+            return list.Count == 0 ? 0 : list.Average();
+        }
+
+        private List<Table5Row> BuildTable5Rows()
+        {
+            const string preschool = "Дошкольные образовательные организации";
+            const string general = "Общеобразовательные организации";
+            const string spo = "Образовательные организации СПО";
+
+            var typesInOrder = new List<string>
+    {
+        preschool,
+        general,
+        spo
+    };
+
+            var rows = new List<Table5Row>();
+
+            foreach (var type in typesInOrder)
+            {
+                var filtered = _records.Where(r =>
+                    string.Equals(r.OrganizationType?.Trim(), type, StringComparison.OrdinalIgnoreCase)).ToList();
+
+                var row = new Table5Row
+                {
+                    OrganizationType = type,
+                    TotalObjects = filtered.Sum(r => ParseInt(r.GetValue("Всего объектов (территорий)"))),
+                    TrainingObjects = filtered.Sum(r => ParseInt(r.GetValue("Количество объектов (территорий), где  проведены тренировки"))),
+                    TotalTrainings = filtered.Sum(r => ParseInt(r.GetValue("Общее количество проведенных тренировок"))),
+                    ManagersCount = filtered.Sum(r => ParseInt(r.GetValue("руководители образовательных организаций и их заместители, чел."))),
+                    ManagersPercent = AverageOrZero(filtered.Select(r => ParseDouble(r.GetValueByOccurrence("% от общего количества", 0)))),
+                    WorkersCount = filtered.Sum(r => ParseInt(r.GetValue("работники, чел."))),
+                    WorkersPercent = AverageOrZero(filtered.Select(r => ParseDouble(r.GetValueByOccurrence("% от общего количества", 1)))),
+                    StudentsCount = filtered.Sum(r => ParseInt(r.GetValue("обучающиеся"))),
+                    StudentsPercent = AverageOrZero(filtered.Select(r => ParseDouble(r.GetValueByOccurrence("% от общего количества", 2)))),
+                    SecurityCount = filtered.Sum(r => ParseInt(r.GetValue("работники охраны, чел."))),
+                    SecurityPercent = AverageOrZero(filtered.Select(r => ParseDouble(r.GetValueByOccurrence("% от общего количества", 3))))
+                };
+
+                rows.Add(row);
+            }
+
+            rows.Add(new Table5Row
+            {
+                OrganizationType = "ВСЕГО",
+                TotalObjects = rows.Sum(r => r.TotalObjects),
+                TrainingObjects = rows.Sum(r => r.TrainingObjects),
+                TotalTrainings = rows.Sum(r => r.TotalTrainings),
+                ManagersCount = rows.Sum(r => r.ManagersCount),
+                ManagersPercent = AverageOrZero(rows.Select(r => r.ManagersPercent)),
+                WorkersCount = rows.Sum(r => r.WorkersCount),
+                WorkersPercent = AverageOrZero(rows.Select(r => r.WorkersPercent)),
+                StudentsCount = rows.Sum(r => r.StudentsCount),
+                StudentsPercent = AverageOrZero(rows.Select(r => r.StudentsPercent)),
+                SecurityCount = rows.Sum(r => r.SecurityCount),
+                SecurityPercent = AverageOrZero(rows.Select(r => r.SecurityPercent))
             });
 
             return rows;

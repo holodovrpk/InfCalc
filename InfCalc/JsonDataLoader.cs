@@ -36,7 +36,10 @@ namespace InfCalc
                     string value = pairElement[1].GetString() ?? string.Empty;
 
                     if (!string.IsNullOrWhiteSpace(key))
+                    {
+                        record.Pairs.Add(new KeyValuePair<string, string>(key, value));
                         record.Fields[key] = value;
+                    }
                 }
 
                 result.Add(record);

@@ -8,6 +8,7 @@ namespace InfCalc
 {
     public class EducationRecord
     {
+        public List<KeyValuePair<string, string>> Pairs { get; set; } = new();
         public Dictionary<string, string> Fields { get; set; } = new();
 
         public string Id => GetValue("ID");
@@ -18,6 +19,24 @@ namespace InfCalc
         public string GetValue(string key)
         {
             return Fields.TryGetValue(key, out var value) ? value : string.Empty;
+        }
+
+        public List<string> GetValues(string key)
+        {
+            return Pairs
+                .Where(p => p.Key == key)
+                .Select(p => p.Value ?? string.Empty)
+                .ToList();
+        }
+
+        public string GetValueByOccurrence(string key, int occurrenceIndex)
+        {
+            var values = GetValues(key);
+
+            if (occurrenceIndex < 0 || occurrenceIndex >= values.Count)
+                return string.Empty;
+
+            return values[occurrenceIndex];
         }
     }
 }
