@@ -162,8 +162,27 @@ namespace InfCalc
 
         private void Table4Button_Click(object sender, RoutedEventArgs e)
         {
-            if (!EnsureDataLoaded()) return;
-            MessageBox.Show("Таблица 4 будет реализована следующим шагом.", "Информация", MessageBoxButton.OK, MessageBoxImage.Information);
+            if (!EnsureDataLoaded())
+                return;
+
+            try
+            {
+                var rows = BuildTable4Rows();
+
+                var window = new Table4Window(rows)
+                {
+                    Owner = this
+                };
+
+                window.ShowDialog();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Ошибка при формировании Таблицы 4:\n{ex.Message}",
+                                "Ошибка",
+                                MessageBoxButton.OK,
+                                MessageBoxImage.Error);
+            }
         }
 
         private void Table5Button_Click(object sender, RoutedEventArgs e)
@@ -419,6 +438,100 @@ namespace InfCalc
             });
 
             return rows;
+        }
+
+
+        private List<Table4Row> BuildTable4Rows()
+        {
+            const string preschool = "Дошкольные образовательные организации";
+            const string general = "Общеобразовательные организации";
+            const string spo = "Образовательные организации СПО";
+
+            var typesInOrder = new List<string>
+    {
+        preschool,
+        general,
+        spo
+    };
+
+            var result = new List<Table4Row>();
+
+            var municipalityGroups = _records
+                .Where(r => !string.IsNullOrWhiteSpace(r.Municipality))
+                .GroupBy(r => r.Municipality.Trim())
+                .OrderBy(g => g.Key)
+                .ToList();
+
+            foreach (var municipalityGroup in municipalityGroups)
+            {
+                var municipalityRecords = municipalityGroup.ToList();
+
+                int municipalTrained = municipalityRecords.Sum(r =>
+                    ParseInt(r.GetValue("Количество должностных лиц образовательных организаций, обученных в соответствии с Профстандартом")));
+
+                int municipalPlannedCurrent = municipalityRecords.Sum(r =>
+                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в текущем году")));
+
+                int municipalPlannedNext = municipalityRecords.Sum(r =>
+                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в следующем году")));
+
+                var municipalityRows = new List<Table4Row>();
+
+                foreach (var type in typesInOrder)
+                {
+                    var typeRecords = municipalityRecords
+                        .Where(r => string.Equals(r.OrganizationType?.Trim(), type, StringComparison.OrdinalIgnoreCase))
+                        .ToList();
+
+                    municipalityRows.Add(new Table4Row
+                    {
+                        Municipality = municipalityGroup.Key,
+                        MunicipalTrained = municipalTrained,
+                        MunicipalPlannedCurrentYear = municipalPlannedCurrent,
+                        MunicipalPlannedNextYear = municipalPlannedNext,
+
+                        OrganizationType = type,
+                        TotalObjects = typeRecords.Sum(r => ParseInt(r.GetValue("Всего объектов (территорий)"))),
+                        OrgTrained = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц образовательных организаций, обученных в соответствии с Профстандартом"))),
+                        OrgPlannedCurrentYear = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в текущем году"))),
+                        OrgPlannedNextYear = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в следующем году")))
+                    });
+                }
+
+                municipalityRows.Add(new Table4Row
+                {
+                    Municipality = municipalityGroup.Key,
+                    MunicipalTrained = municipalTrained,
+                    MunicipalPlannedCurrentYear = municipalPlannedCurrent,
+                    MunicipalPlannedNextYear = municipalPlannedNext,
+
+                    OrganizationType = "ВСЕГО",
+                    TotalObjects = municipalityRows.Sum(r => r.TotalObjects),
+                    OrgTrained = municipalityRows.Sum(r => r.OrgTrained),
+                    OrgPlannedCurrentYear = municipalityRows.Sum(r => r.OrgPlannedCurrentYear),
+                    OrgPlannedNextYear = municipalityRows.Sum(r => r.OrgPlannedNextYear),
+                    IsMunicipalityTotalRow = true
+                });
+
+                result.AddRange(municipalityRows);
+            }
+
+            result.Add(new Table4Row
+            {
+                Municipality = "ИТОГО",
+                MunicipalTrained = result.Sum(r => r.IsMunicipalityTotalRow ? r.MunicipalTrained : 0),
+                MunicipalPlannedCurrentYear = result.Sum(r => r.IsMunicipalityTotalRow ? r.MunicipalPlannedCurrentYear : 0),
+                MunicipalPlannedNextYear = result.Sum(r => r.IsMunicipalityTotalRow ? r.MunicipalPlannedNextYear : 0),
+
+                OrganizationType = "ИТОГО",
+                TotalObjects = result.Sum(r => r.IsMunicipalityTotalRow ? r.TotalObjects : 0),
+                OrgTrained = result.Sum(r => r.IsMunicipalityTotalRow ? r.OrgTrained : 0),
+                OrgPlannedCurrentYear = result.Sum(r => r.IsMunicipalityTotalRow ? r.OrgPlannedCurrentYear : 0),
+                OrgPlannedNextYear = result.Sum(r => r.IsMunicipalityTotalRow ? r.OrgPlannedNextYear : 0),
+                IsGrandTotalRow = true
+            });
+
+            return result;
         }
 
     }
