@@ -467,13 +467,13 @@ namespace InfCalc
                 var municipalityRecords = municipalityGroup.ToList();
 
                 int municipalTrained = municipalityRecords.Sum(r =>
-                    ParseInt(r.GetValue("Количество должностных лиц образовательных организаций, обученных в соответствии с Профстандартом")));
+                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обученных в соответствии с Профстандартом (только для органов местного самоуправления, осуществляющих управление в сфере образования)")));
 
                 int municipalPlannedCurrent = municipalityRecords.Sum(r =>
-                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в текущем году")));
+                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в текущем году (только для органов местного самоуправления, осуществляющих управление в сфере образования)")));
 
                 int municipalPlannedNext = municipalityRecords.Sum(r =>
-                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в следующем году")));
+                    ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в следующем году (только для органов самоуправления, осуществляющих управление в сфере образования)")));
 
                 var municipalityRows = new List<Table4Row>();
 
@@ -493,8 +493,8 @@ namespace InfCalc
                         OrganizationType = type,
                         TotalObjects = typeRecords.Sum(r => ParseInt(r.GetValue("Всего объектов (территорий)"))),
                         OrgTrained = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц образовательных организаций, обученных в соответствии с Профстандартом"))),
-                        OrgPlannedCurrentYear = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в текущем году"))),
-                        OrgPlannedNextYear = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц органа управления образованием, обучение которых запланировано в следующем году")))
+                        OrgPlannedCurrentYear = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц образовательных организаций, обучение которых запланировано в текущем году"))),
+                        OrgPlannedNextYear = typeRecords.Sum(r => ParseInt(r.GetValue("Количество должностных лиц образовательных организаций, обучение которых запланировано в следующем году")))
                     });
                 }
 
